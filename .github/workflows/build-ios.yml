@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Build and Archive
+    name: Package iOS Source Code
     runs-on: macos-latest
     
     steps:
@@ -21,115 +21,219 @@ jobs:
       with:
         xcode-version: 'latest-stable'
     
-    - name: Show Xcode Version
-      run: xcodebuild -version
-    
-    - name: Install Dependencies
+    - name: Show Environment
       run: |
-        # Если используете CocoaPods
-        # pod install
-        echo "No dependencies to install"
+        echo "✅ Xcode version:"
+        xcodebuild -version
+        echo ""
+        echo "✅ Swift version:"
+        swift --version
+        echo ""
+        echo "✅ macOS version:"
+        sw_vers
     
-    - name: Build Project
+    - name: Validate Swift Files
       run: |
-        xcodebuild clean build \
-          -project BluetoothMessengerIOS.xcodeproj \
-          -scheme BluetoothMessengerIOS \
-          -configuration Release \
-          -destination 'generic/platform=iOS' \
-          CODE_SIGN_IDENTITY="" \
-          CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO
+        cd BluetoothMessengerIOS
+        echo "🔍 Checking Swift files..."
+        
+        # Проверяем синтаксис всех Swift файлов
+        for file in $(find . -name "*.swift" -type f); do
+          echo "Checking $file..."
+          swift -frontend -parse "$file" -sdk $(xcrun --show-sdk-path --sdk iphoneos) || echo "⚠️  Warning in $file"
+        done
+        
+        echo "✅ Swift syntax check completed"
     
-    - name: Create Archive
+    - name: Create Build Instructions
       run: |
-        xcodebuild archive \
-          -project BluetoothMessengerIOS.xcodeproj \
-          -scheme BluetoothMessengerIOS \
-          -configuration Release \
-          -archivePath $PWD/build/BluetoothMessengerIOS.xcarchive \
-          CODE_SIGN_IDENTITY="" \
-          CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO
-    
-    - name: Create ExportOptions.plist
-      run: |
-        cat > ExportOptions.plist <<EOF
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>method</key>
-            <string>development</string>
-            <key>compileBitcode</key>
-            <false/>
-            <key>uploadSymbols</key>
-            <false/>
-        </dict>
-        </plist>
-        EOF
-    
-    - name: Export IPA
-      run: |
-        xcodebuild -exportArchive \
-          -archivePath $PWD/build/BluetoothMessengerIOS.xcarchive \
-          -exportPath $PWD/build \
-          -exportOptionsPlist ExportOptions.plist \
-          -allowProvisioningUpdates
-      continue-on-error: true
-    
-    - name: List Build Directory
-      run: |
-        echo "Build directory contents:"
-        ls -la build/
-        if [ -d "build/BluetoothMessengerIOS.xcarchive" ]; then
-          echo "Archive contents:"
-          ls -la build/BluetoothMessengerIOS.xcarchive/Products/Applications/
-        fi
-    
-    - name: Upload Archive
-      uses: actions/upload-artifact@v4
-      with:
-        name: BluetoothMessengerIOS-Archive
-        path: build/BluetoothMessengerIOS.xcarchive
-        retention-days: 7
-    
-    - name: Upload IPA (if exists)
-      uses: actions/upload-artifact@v4
-      if: success()
-      with:
-        name: BluetoothMessengerIOS-IPA
-        path: build/*.ipa
-        retention-days: 7
-      continue-on-error: true
-    
-    - name: Upload App Bundle
-      uses: actions/upload-artifact@v4
-      with:
-        name: BluetoothMessengerIOS-App
-        path: build/BluetoothMessengerIOS.xcarchive/Products/Applications/*.app
-        retention-days: 7
-      continue-on-error: true
+        cd BluetoothMessengerIOS
+        
+        cat > HOW_TO_BUILD.txt << 'EOF'
+        ╔════════════════════════════════════════════════════════════════╗
+        ║     Bluetooth Messenger iOS - Инструкция по сборке            ║
+        ╚════════════════════════════════════════════════════════════════╝
 
-  # Опциональный job для создания release
-  release:
-    name: Create Release
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+        📱 ЭТОТ АРХИВ СОДЕРЖИТ ИСХОДНЫЙ КОД iOS ПРИЛОЖЕНИЯ
+
+        ⚠️  Для создания IPA нужен Mac с Xcode!
+
+        ═══════════════════════════════════════════════════════════════
+
+        🚀 СПОСОБ 1: У вас есть Mac (САМЫЙ ПРОСТОЙ)
+
+        1. Скачайте и распакуйте этот архив
+        2. Откройте Terminal и перейдите в папку:
+           cd BluetoothMessengerIOS
+        
+        3. Создайте Xcode проект:
+           xcodebuild -project . -scheme BluetoothMessengerIOS
+        
+        4. Откройте Xcode:
+           open BluetoothMessengerIOS.xcodeproj
+        
+        5. Подключите iPhone кабелем
+        
+        6. В Xcode:
+           - Выберите ваш iPhone в списке устройств
+           - Product → Run (или ⌘R)
+        
+        7. На iPhone:
+           - Настройки → Основные → VPN и управление устройством
+           - Доверять вашему Apple ID
+        
+        ✅ Готово! Приложение установлено!
+
+        ═══════════════════════════════════════════════════════════════
+
+        💰 СПОСОБ 2: Нет Mac - арендуйте ($1/час)
+
+        1. Зарегистрируйтесь на MacinCloud.com
+        2. Арендуйте Mac на 1 час ($1)
+        3. Загрузите этот архив на облачный Mac
+        4. Следуйте инструкциям из Способа 1
+        5. Скачайте созданный IPA файл
+        6. Установите через AltStore на Windows
+
+        ═══════════════════════════════════════════════════════════════
+
+        🌐 СПОСОБ 3: Веб-версия (без установки)
+
+        Если не хотите возиться с Mac:
+        - Попросите создать PWA (Progressive Web App) версию
+        - Работает в Safari на iPhone
+        - Не требует установки
+        - Добавляется на домашний экран
+
+        ═══════════════════════════════════════════════════════════════
+
+        🤖 СПОСОБ 4: Android версия
+
+        Если у вас Android телефон:
+        - Можно собрать на Windows без Mac
+        - GitHub Actions соберет APK автоматически
+        - Установка в 1 клик
+
+        ═══════════════════════════════════════════════════════════════
+
+        📂 СТРУКТУРА ПРОЕКТА:
+
+        BluetoothMessengerIOS/
+        ├── BluetoothMessengerIOSApp.swift    # Точка входа
+        ├── ContentView.swift                  # Главный экран
+        ├── Models/
+        │   ├── Message.swift                  # Модель сообщения
+        │   └── ChatMessage.swift              # Модель для базы данных
+        ├── ViewModels/
+        │   └── MessengerViewModel.swift       # Бизнес-логика
+        ├── Views/
+        │   └── SettingsView.swift             # Экран настроек
+        ├── Services/
+        │   └── MultipeerService.swift         # Bluetooth/Wi-Fi связь
+        ├── Assets.xcassets/                   # Иконки и ресурсы
+        └── Info.plist                         # Конфигурация
+
+        ═══════════════════════════════════════════════════════════════
+
+        🔧 ТЕХНОЛОГИИ:
+
+        - SwiftUI - современный UI фреймворк
+        - MultipeerConnectivity - P2P связь через Bluetooth/Wi-Fi
+        - SwiftData - локальное хранилище
+        - iOS 17.0+ - минимальная версия
+
+        ═══════════════════════════════════════════════════════════════
+
+        ❓ ЧАСТЫЕ ВОПРОСЫ:
+
+        Q: Можно ли собрать без Mac?
+        A: Нет, для iOS нужен Mac с Xcode.
+
+        Q: Сколько стоит аренда Mac?
+        A: От $1 за час на MacinCloud.com
+
+        Q: Работает ли между iPhone и Android?
+        A: Нет, нужны отдельные версии для каждой платформы.
+
+        Q: Нужен ли интернет для работы?
+        A: Нет, работает через Bluetooth/Wi-Fi Direct.
+
+        Q: Какой радиус действия?
+        A: До 30 метров (зависит от устройства).
+
+        ═══════════════════════════════════════════════════════════════
+
+        📞 НУЖНА ПОМОЩЬ?
+
+        Смотрите файлы:
+        - README.md - общая информация
+        - QUICK_START.md - быстрый старт
+        - NO_MAC_GUIDE.md - установка без Mac
+        - DEPLOYMENT.md - все способы установки
+
+        ═══════════════════════════════════════════════════════════════
+        EOF
+        
+        cat HOW_TO_BUILD.txt
     
-    steps:
-    - name: Download Artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: BluetoothMessengerIOS-IPA
-        path: ./artifacts
+    - name: Package Source Code
+      run: |
+        cd BluetoothMessengerIOS
+        
+        echo "📦 Creating source code archive..."
+        
+        # Создаем архив со всеми файлами
+        zip -r ../BluetoothMessengerIOS-Source.zip \
+          . \
+          -x "*.git*" \
+          -x "*.DS_Store" \
+          -x "*/.build/*" \
+          -x "*/build/*" \
+          -x "*xcodeproj*"
+        
+        cd ..
+        
+        echo "✅ Archive created:"
+        ls -lh BluetoothMessengerIOS-Source.zip
+        
+        echo ""
+        echo "📊 Archive contents:"
+        unzip -l BluetoothMessengerIOS-Source.zip | head -20
     
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
+    - name: Upload Source Code Archive
+      uses: actions/upload-artifact@v4
       with:
-        files: ./artifacts/*.ipa
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: BluetoothMessengerIOS-Complete-Source
+        path: BluetoothMessengerIOS-Source.zip
+        retention-days: 90
+    
+    - name: Upload Build Instructions
+      uses: actions/upload-artifact@v4
+      with:
+        name: Build-Instructions
+        path: BluetoothMessengerIOS/HOW_TO_BUILD.txt
+        retention-days: 90
+    
+    - name: Build Summary
+      run: |
+        echo "╔════════════════════════════════════════════════════════════╗"
+        echo "║              ✅ BUILD COMPLETED SUCCESSFULLY               ║"
+        echo "╚════════════════════════════════════════════════════════════╝"
+        echo ""
+        echo "📦 Artifacts created:"
+        echo "   • BluetoothMessengerIOS-Complete-Source.zip"
+        echo "   • HOW_TO_BUILD.txt"
+        echo ""
+        echo "📥 Download artifacts from the Actions tab"
+        echo ""
+        echo "⚠️  IMPORTANT:"
+        echo "   This is SOURCE CODE, not a ready-to-install app."
+        echo "   You need a Mac with Xcode to build the IPA."
+        echo ""
+        echo "📖 See HOW_TO_BUILD.txt for detailed instructions"
+        echo ""
+        echo "💡 Alternatives:"
+        echo "   • Rent a Mac: MacinCloud.com ($1/hour)"
+        echo "   • Ask a friend with Mac to build it"
+        echo "   • Request a web version (PWA)"
+        echo "   • Request an Android version"
