@@ -23,18 +23,20 @@ jobs:
     
     - name: Show Environment
       run: |
+        echo "✅ Current directory:"
+        pwd
+        echo ""
+        echo "✅ Files in current directory:"
+        ls -la
+        echo ""
         echo "✅ Xcode version:"
         xcodebuild -version
         echo ""
         echo "✅ Swift version:"
         swift --version
-        echo ""
-        echo "✅ macOS version:"
-        sw_vers
     
     - name: Validate Swift Files
       run: |
-        cd BluetoothMessengerIOS
         echo "🔍 Checking Swift files..."
         
         # Проверяем синтаксис всех Swift файлов
@@ -47,8 +49,6 @@ jobs:
     
     - name: Create Build Instructions
       run: |
-        cd BluetoothMessengerIOS
-        
         cat > HOW_TO_BUILD.txt << 'EOF'
         ╔════════════════════════════════════════════════════════════════╗
         ║     Bluetooth Messenger iOS - Инструкция по сборке            ║
@@ -178,27 +178,22 @@ jobs:
     
     - name: Package Source Code
       run: |
-        cd BluetoothMessengerIOS
-        
         echo "📦 Creating source code archive..."
         
         # Создаем архив со всеми файлами
-        zip -r ../BluetoothMessengerIOS-Source.zip \
+        zip -r BluetoothMessengerIOS-Source.zip \
           . \
           -x "*.git*" \
           -x "*.DS_Store" \
           -x "*/.build/*" \
-          -x "*/build/*" \
-          -x "*xcodeproj*"
-        
-        cd ..
+          -x "*/build/*"
         
         echo "✅ Archive created:"
         ls -lh BluetoothMessengerIOS-Source.zip
         
         echo ""
         echo "📊 Archive contents:"
-        unzip -l BluetoothMessengerIOS-Source.zip | head -20
+        unzip -l BluetoothMessengerIOS-Source.zip | head -30
     
     - name: Upload Source Code Archive
       uses: actions/upload-artifact@v4
@@ -211,7 +206,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Build-Instructions
-        path: BluetoothMessengerIOS/HOW_TO_BUILD.txt
+        path: HOW_TO_BUILD.txt
         retention-days: 90
     
     - name: Build Summary
