@@ -1,0 +1,12 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+		{isa = PBXBuildFile; fileRef = /* Info.plist */; };
+		{isa = PBXFileReference; lastKnownFileType = folder; path = BluetoothMessengerIOS; sourceTree = "<group>"; };
+	};
+	rootObject = /* Project object */;
+}
